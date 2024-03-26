@@ -23,7 +23,7 @@ def calculate_rotated_vector_batch(X1, Y1, Z1, X2, Y2, Z2, wdt):
     vector2 = np.stack([X2, Y2, Z2], axis=-1)
 
     # Calculate magnitudes for normalization
-    original_magnitude = np.linalg.norm(vector1, axis=1, keepdims=True)
+    original_magnitude = np.linalg.norm(vector1, axis=1, keepdims=True)  # I checked, this is always 1 now
     vector2_magnitude = np.linalg.norm(vector2, axis=1, keepdims=True)
 
     # Normalize and scale vector2
@@ -45,16 +45,7 @@ def calculate_rotated_vector_batch(X1, Y1, Z1, X2, Y2, Z2, wdt):
     dot_product = np.sum(normal_vector * vector1, axis=1, keepdims=True)
     v_rot = vector1 * cos_theta + k_cross_vector1 * sin_theta + normal_vector * dot_product * one_minus_cos_theta
 
-    # Normalize v_rot for angle calculations
-    v_rot_norm = np.linalg.norm(v_rot, axis=1)
-
-    # Compute angles, ensuring division by zero is handled
-    v_rot_norm = np.where(v_rot_norm > 0, v_rot_norm, 1)  # Avoid division by zero
-    angle_x = np.arccos(np.clip(v_rot[:, 0] / v_rot_norm, -1, 1))
-    angle_y = np.arccos(np.clip(v_rot[:, 1] / v_rot_norm, -1, 1))
-    angle_z = np.arccos(np.clip(v_rot[:, 2] / v_rot_norm, -1, 1))
-
-    return v_rot.T, angle_x, angle_y, angle_z
+    return v_rot.T
 
 
 def calculate_av_heading(x_components, y_components, z_components):
@@ -158,36 +149,24 @@ if __name__ == '__main__':
 
     pos_xs, pos_ys, pos_zs = place_agents(n_agent, (init_x, init_y, init_z), spacing, mean_noise)
 
-    pos_hxs = (rng.random(n_agent) * 3.1415926 * 2) - 3.1415926
-    pos_hys = (rng.random(n_agent) * 3.1415926 * 2) - 3.1415926
-    pos_hzs = (rng.random(n_agent) * 3.1415926 * 2) - 3.1415926
+    theta = np.random.uniform(0, 2*np.pi, n_agent)
+    phi = np.random.uniform(0, np.pi, n_agent)
 
-    pos_h_xc = np.cos(pos_hxs)
-    pos_h_yc = np.cos(pos_hys)
-    pos_h_zc = np.cos(pos_hzs)
+    pos_h_xc = np.sin(phi) * np.cos(theta)
+    pos_h_yc = np.sin(phi) * np.sin(theta)
+    pos_h_zc = np.cos(phi)
+
+    pos_h_m = np.sqrt(np.square(pos_h_xc) + np.square(pos_h_yc) + np.square(pos_h_zc))
+
+    pos_hxs = np.arccos(pos_h_xc / pos_h_m)
+    pos_hys = np.arccos(pos_h_yc / pos_h_m)
+    pos_hzs = np.arccos(pos_h_zc / pos_h_m)
 
     u = np.zeros(n_agent)
     w = np.zeros(n_agent)
 
     del spacing, init_x, init_y, init_z
 
-    # dt = 0.05
-    # epsilon = 12.0
-    # sigma_const = 0.4
-    # sigmas = np.full(n_agent, sigma_const)
-    # sigmas_b = np.full(n_agent, 0.05)
-    # umax_const = 0.3
-    # wmax = 1.5708
-    # alpha = 1.0
-    # beta = 2.0
-    # k1 = 0.6
-    # k2 = 0.1
-    # krep = 50
-    # l0 = 0.5
-    # sensing_range = 3.0
-    # run_wall_time = 15
-    # h_alignment = True
-    # self_log = True
     dt = 0.05
     epsilon = 12.0
     sigma_const = input_dict["sigma_const"]
@@ -311,7 +290,7 @@ if __name__ == '__main__':
 
             if np.min(np.concatenate((d_bxi, d_byi, d_bzi))) < min_observed_bound:
                 min_observed_bound = np.min(np.concatenate((d_bxi, d_byi, d_bzi)))
-            print(min_observed_bound)
+
         else:
             f_x += fa_x
             f_y += fa_y
@@ -321,7 +300,6 @@ if __name__ == '__main__':
         f_mag = np.where(f_mag == 0, 0.00001, f_mag)
 
         dot_f_h = f_x * pos_h_xc + f_y * pos_h_yc + f_z * pos_h_zc
-        # cos_dot_f_h = np.clip(dot_f_h / (f_mag*np.sqrt(pos_h_xc**2 + pos_h_yc**2 + pos_h_zc**2)), -1.0, 1.0)
         cos_dot_f_h = dot_f_h / (f_mag * np.sqrt(pos_h_xc ** 2 + pos_h_yc ** 2 + pos_h_zc ** 2))
         ang_f_h = np.arccos(cos_dot_f_h)
 
@@ -335,7 +313,7 @@ if __name__ == '__main__':
         pos_ys += u * np.cos(pos_hys) * dt
         pos_zs += u * np.cos(pos_hzs) * dt
 
-        v_rot, angle_x, angle_y, angle_z = calculate_rotated_vector_batch(
+        v_rot = calculate_rotated_vector_batch(
             pos_h_xc, pos_h_yc, pos_h_zc, f_x, f_y, f_z, w * dt)
 
         pos_h_xc = v_rot[0, :]
