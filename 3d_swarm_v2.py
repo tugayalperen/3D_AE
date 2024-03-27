@@ -234,7 +234,7 @@ if __name__ == '__main__':
 
         pos_h_vec = np.arccos(headings / np.linalg.norm(headings, axis=0))
 
-        if (not (i % 7)) and (i > 10):
+        if (not (i % 7)) and (i > 10) and if_plot:
             plotter.update_plot(positions[0], positions[1], positions[2],
                                 pos_h_vec[0], pos_h_vec[1], pos_h_vec[2])
 
