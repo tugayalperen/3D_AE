@@ -123,20 +123,24 @@ if __name__ == '__main__':
     epsilon = 12.0
     sigma_const = input_dict["sigma_const"]
     sigmas = np.full(n_agent, sigma_const)
-    sigmas_b = np.full(n_agent, 0.05)
+    sigmas_b = np.full(n_agent, 0.01)
     umax_const = input_dict["umax_const"]
     wmax = input_dict["wmax"]
     alpha = input_dict["alpha"]
     beta = input_dict["beta"]
     k1 = input_dict["k1"]
     k2 = input_dict["k2"]
-    krep = 50
-    l0 = 0.5
+    exp_index = input_dict["exp_index"]
     sensing_range = 3.0
     run_wall_time = input_dict["run_wall_time"]
     h_alignment = input_dict["h_alignment"]
     self_log = True
     save_dir = "./point_results/"
+    noise_pos = input_dict["noise_pos"]
+    # noise_pos_x = input_dict["noise_pos"]
+    # noise_pos_y = input_dict["noise_pos"]
+    # noise_pos_z = input_dict["noise_pos"]
+    noise_h = input_dict["noise_h"]
 
     global boun_x, boun_y, boun_z, boun_thres
     boun_x = input_dict["boun_x"]
@@ -144,13 +148,6 @@ if __name__ == '__main__':
     boun_z = input_dict["boun_z"]
     center_pos = np.array((boun_x, boun_y, boun_z)).reshape((3, 1)) / 2
     boun_thresh = 0.5
-
-    sigma_map = 0.3
-
-    map_x, map_y, map_z = [np.linspace(-1, 1, 150) for _ in range(3)]
-    X, Y, Z = np.meshgrid(map_x, map_y, map_z)
-    map_3d = 255 * np.exp(-(X ** 2 + Y ** 2 + Z ** 2) / (2 * sigma_map ** 2))
-    grad_const_x, grad_const_y, grad_const_z = [150 / boun for boun in (boun_x, boun_y, boun_z)]
 
     if if_plot:
         plotter = plot_swarm_v2.SwarmPlotter(n_agent, boun_x, boun_y, boun_z)
@@ -161,9 +158,9 @@ if __name__ == '__main__':
         log_pos_xs = np.zeros([n_agent, int(run_wall_time / dt)])
         log_pos_ys = np.zeros([n_agent, int(run_wall_time / dt)])
         log_pos_zs = np.zeros([n_agent, int(run_wall_time / dt)])
-        log_pos_hxs = np.zeros([n_agent, int(run_wall_time / dt)])
-        log_pos_hys = np.zeros([n_agent, int(run_wall_time / dt)])
-        log_pos_hzs = np.zeros([n_agent, int(run_wall_time / dt)])
+        log_pos_hxc = np.zeros([n_agent, int(run_wall_time / dt)])
+        log_pos_hyc = np.zeros([n_agent, int(run_wall_time / dt)])
+        log_pos_hzc = np.zeros([n_agent, int(run_wall_time / dt)])
         log_us = np.zeros([n_agent, int(run_wall_time / dt)])
         log_ws = np.zeros([n_agent, int(run_wall_time / dt)])
 
@@ -171,14 +168,14 @@ if __name__ == '__main__':
     positions = np.stack((pos_xs, pos_ys, pos_zs))
     begin_all = time.time()
     for i in range(int(run_wall_time / dt)):
-
+        positions += rng.uniform(-noise_pos, noise_pos, (3, n_agent))*dt
         if self_log:
-            log_pos_xs[:, i] = pos_xs[:]
-            log_pos_ys[:, i] = pos_ys[:]
-            log_pos_zs[:, i] = pos_zs[:]
-            log_pos_hxs[:, i] = pos_hxs[:]
-            log_pos_hys[:, i] = pos_hys[:]
-            log_pos_hzs[:, i] = pos_hzs[:]
+            log_pos_xs[:, i] = positions[0]
+            log_pos_ys[:, i] = positions[1]
+            log_pos_zs[:, i] = positions[2]
+            log_pos_hxc[:, i] = headings[0]
+            log_pos_hyc[:, i] = headings[1]
+            log_pos_hzc[:, i] = headings[2]
             log_us = u[:]
             log_ws = w[:]
 
@@ -227,14 +224,14 @@ if __name__ == '__main__':
         u = np.clip(u, 0, umax_const)
         w = np.clip(w, -wmax, wmax)
 
-        positions += u * headings * dt
+        positions += (u * headings + rng.uniform(-noise_h, noise_h, (3, n_agent))) * dt
 
         headings = calculate_rotated_vector_batch(
             headings, force_vecs, w * dt)
 
         pos_h_vec = np.arccos(headings / np.linalg.norm(headings, axis=0))
 
-        if (not (i % 7)) and (i > 10) and if_plot:
+        if (not (i % 1)) and (i > 10) and if_plot:
             plotter.update_plot(positions[0], positions[1], positions[2],
                                 pos_h_vec[0], pos_h_vec[1], pos_h_vec[2])
 
@@ -248,17 +245,17 @@ if __name__ == '__main__':
         filename_posx = save_dir + "log_pos_xs_" + dt_string + ".npy"
         filename_posy = save_dir + "log_pos_ys_" + dt_string + ".npy"
         filename_posz = save_dir + "log_pos_zs_" + dt_string + ".npy"
-        filename_pos_hxs = save_dir + "log_pos_hxs_" + dt_string + ".npy"
-        filename_pos_hys = save_dir + "log_pos_hys_" + dt_string + ".npy"
-        filename_pos_hzs = save_dir + "log_pos_hzs_" + dt_string + ".npy"
+        filename_pos_hxc = save_dir + "log_pos_hxc_" + dt_string + ".npy"
+        filename_pos_hyc = save_dir + "log_pos_hyc_" + dt_string + ".npy"
+        filename_pos_hzc = save_dir + "log_pos_hzc_" + dt_string + ".npy"
         filename_us = save_dir + "log_us_" + dt_string + ".npy"
         filename_ws = save_dir + "log_ws_" + dt_string + ".npy"
         np.save(filename_posx, log_pos_xs)
         np.save(filename_posy, log_pos_ys)
         np.save(filename_posz, log_pos_zs)
-        np.save(filename_pos_hxs, log_pos_hxs)
-        np.save(filename_pos_hys, log_pos_hys)
-        np.save(filename_pos_hzs, log_pos_hzs)
+        np.save(filename_pos_hxc, log_pos_hxc)
+        np.save(filename_pos_hyc, log_pos_hyc)
+        np.save(filename_pos_hzc, log_pos_hzc)
         np.save(filename_us, log_us)
         np.save(filename_ws, log_ws)
     print("Time elapsed: ", time.time() - begin_all)
