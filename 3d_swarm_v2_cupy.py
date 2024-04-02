@@ -139,9 +139,10 @@ if __name__ == '__main__':
     run_wall_time = input_dict["run_wall_time"]
     h_alignment = input_dict["h_alignment"]
     self_log = True
-    save_dir = "./point_results/"
+    save_dir = "./point_results/5_k2/"
     noise_pos = input_dict["noise_pos"]
     noise_h = input_dict["noise_h"]
+    param_level = input_dict["param_level"]
 
     global boun_x, boun_y, boun_z, boun_thres
     boun_x = input_dict["boun_x"]
@@ -233,8 +234,9 @@ if __name__ == '__main__':
     if self_log:
         # now = datetime.now()
         # dt_string = now.strftime("%d_%m_%Y|%H_%M_%S")
-        dt_string = datetime.utcnow().strftime('%d_%m_%Y|%S_%f')[:-3]
-        dir_path = dt_string + "_" + str(exp_index)
+        # dt_string = datetime.utcnow().strftime('%d_%m_%Y|%S_%f')[:-3]
+        dt_string = datetime.utcnow().strftime('%d_%m_%Y|')
+        dir_path = dt_string + "_" + str(param_level) + "_" + str(exp_index)
         create_empty_directory(save_dir + dir_path)
         save_dir = save_dir + dir_path + "/"
         filename_posx = save_dir + "log_pos_xs_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
