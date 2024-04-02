@@ -3,7 +3,7 @@
 # else
 #     import numpy as np
 import time
-import cupy as np
+import numpy as np
 import plot_swarm_v2
 from datetime import datetime
 import os
@@ -141,9 +141,6 @@ if __name__ == '__main__':
     self_log = True
     save_dir = "./point_results/"
     noise_pos = input_dict["noise_pos"]
-    # noise_pos_x = input_dict["noise_pos"]
-    # noise_pos_y = input_dict["noise_pos"]
-    # noise_pos_z = input_dict["noise_pos"]
     noise_h = input_dict["noise_h"]
 
     global boun_x, boun_y, boun_z, boun_thres
@@ -169,7 +166,6 @@ if __name__ == '__main__':
     positions = np.stack((pos_xs, pos_ys, pos_zs))
     begin_all = time.time()
     for i in range(int(run_wall_time / dt)):
-        positions += rng.uniform(-noise_pos, noise_pos, (3, n_agent))*dt
         if self_log:
             log_pos_xs[:, i] = positions[0]
             log_pos_ys[:, i] = positions[1]
@@ -186,20 +182,21 @@ if __name__ == '__main__':
         dist = np.stack((delta_x, delta_y, delta_z))
         dist_norm = np.linalg.norm(dist, axis=0)
         dist_norm[(dist_norm > sensing_range) | (dist_norm == 0)] = np.inf
+        dist_norm += rng.uniform(-noise_pos, noise_pos, (n_agent, n_agent)) * dt
         dist_ratio = dist / dist_norm
 
         forces = -epsilon * (2 * (sigmas**4 / dist_norm ** 5) - (sigmas**2 / dist_norm ** 3))
         force_vecs = alpha * np.sum(forces * dist_ratio, axis=2)
 
         mean_heading = calculate_av_heading(headings)
-        fa_vec = beta * mean_heading
+        fa_vec = beta * mean_heading * np.ones(np.shape(mean_heading)) * h_alignment
 
         d_bounds = center_pos - np.abs(positions - center_pos)
         in_bounds = d_bounds < boun_thresh
         if np.any(in_bounds):
             boundary_effect = np.maximum(-epsilon * 5 * (2 * (sigmas_b ** 4 / d_bounds ** 5) - (sigmas_b ** 2 / d_bounds ** 3)), 0)
 
-            f_b =  boundary_effect * in_bounds * -np.sign(positions - center_pos)
+            f_b = boundary_effect * in_bounds * -np.sign(positions - center_pos)
             force_vecs += fa_vec + f_b
             if np.min(d_bounds) < min_observed_bound:
                 min_observed_bound = np.min(d_bounds)
@@ -237,17 +234,17 @@ if __name__ == '__main__':
         # now = datetime.now()
         # dt_string = now.strftime("%d_%m_%Y|%H_%M_%S")
         dt_string = datetime.utcnow().strftime('%d_%m_%Y|%S_%f')[:-3]
-        dir_path = dt_string
+        dir_path = dt_string + "_" + str(exp_index)
         create_empty_directory(save_dir + dir_path)
         save_dir = save_dir + dir_path + "/"
-        filename_posx = save_dir + "log_pos_xs_" + dt_string + ".npy"
-        filename_posy = save_dir + "log_pos_ys_" + dt_string + ".npy"
-        filename_posz = save_dir + "log_pos_zs_" + dt_string + ".npy"
-        filename_pos_hxc = save_dir + "log_pos_hxc_" + dt_string + ".npy"
-        filename_pos_hyc = save_dir + "log_pos_hyc_" + dt_string + ".npy"
-        filename_pos_hzc = save_dir + "log_pos_hzc_" + dt_string + ".npy"
-        filename_us = save_dir + "log_us_" + dt_string + ".npy"
-        filename_ws = save_dir + "log_ws_" + dt_string + ".npy"
+        filename_posx = save_dir + "log_pos_xs_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
+        filename_posy = save_dir + "log_pos_ys_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
+        filename_posz = save_dir + "log_pos_zs_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
+        filename_pos_hxc = save_dir + "log_pos_hxc_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
+        filename_pos_hyc = save_dir + "log_pos_hyc_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
+        filename_pos_hzc = save_dir + "log_pos_hzc_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
+        filename_us = save_dir + "log_us_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
+        filename_ws = save_dir + "log_ws_" + dt_string + "_" + str(exp_index) + "_" + ".npy"
         np.save(filename_posx, log_pos_xs)
         np.save(filename_posy, log_pos_ys)
         np.save(filename_posz, log_pos_zs)

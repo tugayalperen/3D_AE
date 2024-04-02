@@ -25,5 +25,5 @@ class SwarmPlotter:
         self.scat._offsets3d = (pos_xs, pos_ys, pos_zs)
         # Update quiver plot data
         self.quiv.remove()  # Currently necessary due to Matplotlib's limitations with 3D quiver updates
-        self.quiv = self.ax.quiver(pos_xs, pos_ys, pos_zs, np.cos(pos_hxs), np.cos(pos_hys), np.cos(pos_hzs), color="black", length=0.4)
+        self.quiv = self.ax.quiver(pos_xs, pos_ys, pos_zs, np.cos(pos_hxs), np.cos(pos_hys), np.cos(pos_hzs), color="black", length=0.2)
         plt.pause(0.0000001)  # Adjust this value as needed for your visualization needs
