@@ -3,7 +3,7 @@
 # else
 #     import numpy as np
 import time
-import numpy as np
+import cupy as np
 import plot_swarm_v2
 from datetime import datetime
 import os
@@ -139,10 +139,12 @@ if __name__ == '__main__':
     run_wall_time = input_dict["run_wall_time"]
     h_alignment = input_dict["h_alignment"]
     self_log = True
-    save_dir = "./point_results/5_k2/"
+    exp_name = input_dict["exp_name"]
+    save_dir = "./point_results/" + exp_name + "/"
     noise_pos = input_dict["noise_pos"]
     noise_h = input_dict["noise_h"]
     param_level = input_dict["param_level"]
+
 
     global boun_x, boun_y, boun_z, boun_thres
     boun_x = input_dict["boun_x"]
